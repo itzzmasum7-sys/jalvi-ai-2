@@ -1,0 +1,25 @@
+name: jalvi_ai
+description: JALVI AI 2.0 personal Android assistant starter.
+publish_to: "none"
+version: 2.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.2
+  permission_handler: ^12.0.1
+  battery_plus: ^6.2.1
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
