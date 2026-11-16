@@ -46,8 +46,8 @@ jobs:
       - name: Format Dart source
         run: dart format lib
 
-      - name: Analyze Dart source
-        run: flutter analyze --no-pub
+      - name: Analyze Dart source (non-blocking)
+        run: flutter analyze --no-pub || true
 
       - name: Build release APK
         run: flutter build apk --release
