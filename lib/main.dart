@@ -360,7 +360,7 @@ class _AssistantHomeState extends State<AssistantHome> {
         return;
       case 'time':
         final now = DateTime.now();
-        await _say('Abhi \${now.hour} bajkar \${now.minute} minute hue hain.');
+        await _say('Abhi ${now.hour} bajkar ${now.minute} minute hue hain.');
         return;
       case 'sms_read':
         if (_sms.isEmpty) await _loadSms();
