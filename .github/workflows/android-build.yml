@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
@@ -24,25 +27,27 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate missing Android Gradle scaffold
+      - name: Generate Android Gradle scaffold and preserve app files
         shell: bash
         run: |
+          mkdir -p /tmp/jalvi-custom
+          cp android/app/src/main/AndroidManifest.xml /tmp/jalvi-custom/AndroidManifest.xml
+          cp android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai/MainActivity.kt /tmp/jalvi-custom/MainActivity.kt
           flutter create --platforms=android --org com.jalvi.ai --project-name jalvi_ai --overwrite /tmp/jalvi_scaffold
-          cp -a /tmp/jalvi_scaffold/android/gradle ./android/
-          cp /tmp/jalvi_scaffold/android/gradlew ./android/
-          cp /tmp/jalvi_scaffold/android/gradlew.bat ./android/
-          cp /tmp/jalvi_scaffold/android/settings.gradle ./android/
-          cp /tmp/jalvi_scaffold/android/build.gradle ./android/
-          cp /tmp/jalvi_scaffold/android/gradle.properties ./android/
-          cp /tmp/jalvi_scaffold/android/app/build.gradle ./android/app/
-          mkdir -p android/app/src/main/res
-          cp -a /tmp/jalvi_scaffold/android/app/src/main/res/. android/app/src/main/res/
+          mkdir -p android
+          cp -a /tmp/jalvi_scaffold/android/. android/
+          mkdir -p android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai
+          cp /tmp/jalvi-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          cp /tmp/jalvi-custom/MainActivity.kt android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai/MainActivity.kt
 
       - name: Resolve Flutter packages
         run: flutter pub get
 
-      - name: Check Dart code
-        run: flutter analyze
+      - name: Format Dart source
+        run: dart format lib
+
+      - name: Analyze Dart source
+        run: flutter analyze --no-pub
 
       - name: Build release APK
         run: flutter build apk --release
@@ -53,3 +58,4 @@ jobs:
           name: jalvi-ai-2-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          retention-days: 14
