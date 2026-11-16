@@ -1,0 +1,55 @@
+name: Build JALVI AI 2.0 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate missing Android Gradle scaffold
+        shell: bash
+        run: |
+          flutter create --platforms=android --org com.jalvi.ai --project-name jalvi_ai --overwrite /tmp/jalvi_scaffold
+          cp -a /tmp/jalvi_scaffold/android/gradle ./android/
+          cp /tmp/jalvi_scaffold/android/gradlew ./android/
+          cp /tmp/jalvi_scaffold/android/gradlew.bat ./android/
+          cp /tmp/jalvi_scaffold/android/settings.gradle ./android/
+          cp /tmp/jalvi_scaffold/android/build.gradle ./android/
+          cp /tmp/jalvi_scaffold/android/gradle.properties ./android/
+          cp /tmp/jalvi_scaffold/android/app/build.gradle ./android/app/
+          mkdir -p android/app/src/main/res
+          cp -a /tmp/jalvi_scaffold/android/app/src/main/res/. android/app/src/main/res/
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Check Dart code
+        run: flutter analyze
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jalvi-ai-2-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
