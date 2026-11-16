@@ -217,11 +217,6 @@ class _AssistantHomeState extends State<AssistantHome> {
       return;
     }
     if (q.contains('call') || q.contains('phone karo') || q.contains('फोन करो')) {
-      final name = raw
-          .replaceAll(RegExp(r'(?i)jarvis'), '')
-          .replaceAll(RegExp(r'(?i)call'), '')
-          .replaceAll(RegExp(r'(?i)phone karo'), '')
-          .trim();
       await _say('Main dialer khol raha hoon. Contact select karke call confirm karein.');
       await _native.invokeMethod('openDialer', {'number': ''});
       return;
