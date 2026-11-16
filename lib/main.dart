@@ -80,9 +80,24 @@ class _AssistantHomeState extends State<AssistantHome> {
     await _tts.setSpeechRate(0.48);
     await _tts.setPitch(_voice == 'male' ? 0.85 : 1.05);
     await _tts.setLanguage(_language);
-    _tts.setStartHandler(() => setState(() => _speaking = true));
-    _tts.setCompletionHandler(() => setState(() => _speaking = false));
-    _tts.setCancelHandler(() => setState(() => _speaking = false));
+    _tts.setStartHandler(() {
+      if (mounted) setState(() {
+        _speaking = true;
+        _status = 'Speaking';
+      });
+    });
+    _tts.setCompletionHandler(() {
+      if (mounted) setState(() {
+        _speaking = false;
+        _status = 'Ready';
+      });
+    });
+    _tts.setCancelHandler(() {
+      if (mounted) setState(() {
+        _speaking = false;
+        _status = 'Ready';
+      });
+    });
   }
 
   Future<void> _say(String text) async {
