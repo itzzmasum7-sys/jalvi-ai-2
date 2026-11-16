@@ -58,7 +58,9 @@ class _AssistantHomeState extends State<AssistantHome> {
   String _language = 'hi-IN';
   String _voice = 'female';
   String _aiEndpoint = '';
+  String _aiToken = '';
   final TextEditingController _endpointController = TextEditingController();
+  final TextEditingController _tokenController = TextEditingController();
 
   @override
   void initState() {
@@ -73,6 +75,8 @@ class _AssistantHomeState extends State<AssistantHome> {
       _language = prefs.getString('language') ?? 'hi-IN';
       _voice = prefs.getString('voice') ?? 'female';
       _aiEndpoint = prefs.getString('ai_endpoint') ?? '';
+      _aiToken = prefs.getString('ai_token') ?? '';
+      _tokenController.text = _aiToken;
       _endpointController.text = _aiEndpoint;
     });
   }
@@ -82,6 +86,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     await prefs.setString('language', _language);
     await prefs.setString('voice', _voice);
     await prefs.setString('ai_endpoint', _aiEndpoint);
+    await prefs.setString('ai_token', _aiToken);
   }
 
   Future<void> _initTts() async {
@@ -313,7 +318,10 @@ class _AssistantHomeState extends State<AssistantHome> {
       if (mounted) setState(() => _status = 'Thinking');
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (_aiToken.isNotEmpty) 'X-App-Token': _aiToken,
+        },
         body: jsonEncode({
           'message': prompt,
           'language': _language,
@@ -460,6 +468,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     _tts.stop();
     _command.dispose();
     _endpointController.dispose();
+    _tokenController.dispose();
     super.dispose();
   }
 
@@ -637,9 +646,22 @@ class _AssistantHomeState extends State<AssistantHome> {
             onChanged: (v) => _aiEndpoint = v.trim(),
           ),
           const SizedBox(height: 8),
+          const Text('App access token (provided by setup admin)'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _tokenController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              hintText: 'App access token',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (v) => _aiToken = v.trim(),
+          ),
+          const SizedBox(height: 8),
           FilledButton(
             onPressed: () async {
               _aiEndpoint = _endpointController.text.trim();
+              _aiToken = _tokenController.text.trim();
               await _saveSettings();
               if (ctx.mounted) Navigator.pop(ctx);
               await _say(_aiEndpoint.isEmpty
