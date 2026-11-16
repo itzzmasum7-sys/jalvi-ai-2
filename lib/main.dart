@@ -102,35 +102,62 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _say('Microphone permission nahi mili. Settings mein permission allow karein.');
       return;
     }
-    _speechReady = await _speech.initialize(
-      onStatus: (s) {
-        if (mounted) setState(() {
-          _status = s;
-          _listening = s == 'listening';
-        });
-      },
-      onError: (e) {
-        if (mounted) setState(() {
-          _listening = false;
-          _status = 'Voice error';
-        });
-      },
-    );
+    try {
+      _speechReady = await _speech.initialize(
+        debugLogging: true,
+        onStatus: (s) {
+          if (!mounted) return;
+          setState(() {
+            _listening = s == 'listening';
+            _status = (s == 'done' || s == 'notListening') ? 'Ready' : s;
+          });
+        },
+        onError: (e) {
+          if (!mounted) return;
+          setState(() {
+            _listening = false;
+            _status = 'Voice error: ' + e.errorMsg;
+          });
+        },
+      );
+    } catch (e) {
+      if (mounted) setState(() {
+        _listening = false;
+        _status = 'Voice unavailable';
+      });
+      await _say('Voice recognition start nahi ho paya. Google speech service aur microphone permission check karein.');
+      return;
+    }
     if (!_speechReady) {
       await _say('Speech recognition is device par available nahi hai.');
       return;
     }
+    final available = await _speech.locales();
+    final ids = available.map((e) => e.localeId).toSet();
+    final speechLocale = ids.contains(_language)
+        ? _language
+        : (ids.contains('hi-IN') ? 'hi-IN' : (ids.contains('en-IN') ? 'en-IN' : null));
     setState(() {
       _listening = true;
       _status = 'Listening';
     });
     await _speech.listen(
-      localeId: _language,
-      listenFor: const Duration(seconds: 25),
-      pauseFor: const Duration(seconds: 3),
+      localeId: speechLocale,
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 5),
+      partialResults: true,
+      cancelOnError: false,
+      listenMode: stt.ListenMode.dictation,
       onResult: (result) {
-        if (result.finalResult) {
+        if (!mounted) return;
+        if (result.recognizedWords.isNotEmpty) {
           _command.text = result.recognizedWords;
+        }
+        if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
+          setState(() {
+            _listening = false;
+            _status = 'Processing';
+          });
           _handleCommand(result.recognizedWords);
         }
       },
@@ -186,11 +213,28 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _loadSms();
       return;
     }
-    if (q.contains('torch on') || q.contains('flash on') || q.contains('torch chalu')) {
+    final hasTorchWord = q.contains('torch') ||
+        q.contains('torucg') ||
+        q.contains('टॉर्च') ||
+        q.contains('flashlight') ||
+        q.contains('flash light') ||
+        q.contains('flash');
+    final wantsTorchOn = q.contains('on') ||
+        q.contains('chalu') ||
+        q.contains('चालू') ||
+        q.contains('जलाओ') ||
+        q.contains('जला दो') ||
+        q.contains('ऑन');
+    final wantsTorchOff = q.contains('off') ||
+        q.contains('band') ||
+        q.contains('बंद') ||
+        q.contains('बुझा') ||
+        q.contains('ऑफ');
+    if (hasTorchWord && wantsTorchOn) {
       await _torch(true);
       return;
     }
-    if (q.contains('torch off') || q.contains('flash off') || q.contains('torch band')) {
+    if (hasTorchWord && wantsTorchOff) {
       await _torch(false);
       return;
     }
@@ -275,10 +319,17 @@ class _AssistantHomeState extends State<AssistantHome> {
 
   Future<void> _torch(bool enabled) async {
     try {
-      await _native.invokeMethod('setTorch', {'enabled': enabled});
-      await _say(enabled ? 'Torch on kar diya.' : 'Torch off kar diya.');
-    } on PlatformException catch (_) {
-      await _say('Torch control is device par available nahi hai.');
+      final changed = await _native.invokeMethod<bool>(
+        'setTorch',
+        {'enabled': enabled},
+      );
+      if (changed == true) {
+        await _say(enabled ? 'Torch on kar diya.' : 'Torch off kar diya.');
+      } else {
+        await _say('Is phone ke camera mein flashlight available nahi mili.');
+      }
+    } on PlatformException catch (e) {
+      await _say('Torch control nahi ho paya: ' + (e.message ?? 'camera error'));
     }
   }
 
