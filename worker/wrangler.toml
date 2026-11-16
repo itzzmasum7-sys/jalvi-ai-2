@@ -1,0 +1,6 @@
+name = "jalvi-ai-brain"
+main = "src/index.js"
+compatibility_date = "2026-11-17"
+
+[vars]
+GEMINI_MODEL = "gemini-3.8-flash"
