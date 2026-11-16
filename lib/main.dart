@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:battery_plus/battery_plus.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -54,6 +57,8 @@ class _AssistantHomeState extends State<AssistantHome> {
   String _lastReply = 'Namaste! Main Jarvis hoon. Aap kya karna chahenge?';
   String _language = 'hi-IN';
   String _voice = 'female';
+  String _aiEndpoint = '';
+  final TextEditingController _endpointController = TextEditingController();
 
   @override
   void initState() {
@@ -67,6 +72,8 @@ class _AssistantHomeState extends State<AssistantHome> {
     setState(() {
       _language = prefs.getString('language') ?? 'hi-IN';
       _voice = prefs.getString('voice') ?? 'female';
+      _aiEndpoint = prefs.getString('ai_endpoint') ?? '';
+      _endpointController.text = _aiEndpoint;
     });
   }
 
@@ -74,6 +81,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', _language);
     await prefs.setString('voice', _voice);
+    await prefs.setString('ai_endpoint', _aiEndpoint);
   }
 
   Future<void> _initTts() async {
@@ -288,7 +296,89 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _say('Ji, main sun raha hoon. Bataiye.');
       return;
     }
-    await _say('Ye command abhi starter version mein available nahi hai. Aap ise text mein bhi likh sakte hain.');
+    if (_aiEndpoint.trim().isNotEmpty) {
+      await _askAi(raw);
+    } else {
+      await _say('AI brain connect nahi hai. Settings mein AI server URL add karein.');
+    }
+  }
+
+  Future<void> _askAi(String prompt) async {
+    try {
+      final uri = Uri.parse(_aiEndpoint.trim());
+      if (!uri.hasScheme || !uri.hasAuthority) {
+        await _say('AI server URL sahi nahi hai. Settings check karein.');
+        return;
+      }
+      if (mounted) setState(() => _status = 'Thinking');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'message': prompt,
+          'language': _language,
+          'history': _history.take(8).toList().reversed.toList(),
+        }),
+      ).timeout(const Duration(seconds: 35));
+      if (response.statusCode != 200) {
+        await _say('AI server se response nahi mila. Thodi der baad try karein.');
+        return;
+      }
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final reply = (data['reply'] ?? 'Ji, bataiye.').toString();
+      final action = (data['action'] ?? 'none').toString();
+      final target = (data['target'] ?? '').toString();
+      if (action != 'none') {
+        await _executeAiAction(action, target, reply);
+      } else {
+        await _say(reply);
+      }
+    } catch (e) {
+      await _say('AI se connection nahi ho paya. Internet aur AI server URL check karein.');
+    }
+  }
+
+  Future<void> _executeAiAction(String action, String target, String reply) async {
+    switch (action) {
+      case 'torch_on':
+        await _torch(true);
+        return;
+      case 'torch_off':
+        await _torch(false);
+        return;
+      case 'battery':
+        final level = await _battery.batteryLevel;
+        await _say('Aapke phone ki battery $level percent hai.');
+        return;
+      case 'time':
+        final now = DateTime.now();
+        await _say('Abhi \${now.hour} bajkar \${now.minute} minute hue hain.');
+        return;
+      case 'sms_read':
+        if (_sms.isEmpty) await _loadSms();
+        if (_sms.isNotEmpty) await _readSmsAt(_smsIndex);
+        return;
+      case 'open_app':
+        const apps = <String, String>{
+          'whatsapp': 'com.whatsapp',
+          'youtube': 'com.google.android.youtube',
+          'instagram': 'com.instagram.android',
+          'camera': 'com.sec.android.app.camera',
+        };
+        final package = apps[target.toLowerCase()];
+        if (package == null) {
+          await _say('Is app ko kholne ki permission list mein nahi hai.');
+        } else {
+          await _openApp(package, target);
+        }
+        return;
+      case 'open_dialer':
+        await _say(reply.isEmpty ? 'Dialer khol raha hoon. Call aap khud confirm karein.' : reply);
+        await _native.invokeMethod('openDialer', {'number': ''});
+        return;
+      default:
+        await _say(reply);
+    }
   }
 
   Future<void> _loadSms() async {
@@ -369,6 +459,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     _speech.stop();
     _tts.stop();
     _command.dispose();
+    _endpointController.dispose();
     super.dispose();
   }
 
@@ -534,7 +625,31 @@ class _AssistantHomeState extends State<AssistantHome> {
             },
           ),
           const SizedBox(height: 16),
-          const Text('Wake word “Jarvis” background listening is not enabled in this starter.'),
+          const Text('AI brain server URL'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _endpointController,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              hintText: 'https://your-worker.example.workers.dev',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (v) => _aiEndpoint = v.trim(),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () async {
+              _aiEndpoint = _endpointController.text.trim();
+              await _saveSettings();
+              if (ctx.mounted) Navigator.pop(ctx);
+              await _say(_aiEndpoint.isEmpty
+                  ? 'AI server URL hata diya gaya.'
+                  : 'AI server URL save ho gaya.');
+            },
+            child: const Text('Save AI Server URL'),
+          ),
+          const SizedBox(height: 8),
+          const Text('Wake word “Jarvis” background listening is not enabled yet.'),
           const SizedBox(height: 12),
         ]),
       )),
