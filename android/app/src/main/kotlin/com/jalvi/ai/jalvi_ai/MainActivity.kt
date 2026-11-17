@@ -33,7 +33,6 @@ class MainActivity : FlutterActivity() {
                         stopService(Intent(this, WakeWordService::class.java))
                         result.success(true)
                     }
-                when (call.method) {
                     "findContact" -> {
                         if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
                             result.error("PERMISSION", "Contacts permission not granted", null)
