@@ -69,6 +69,12 @@ class _AssistantHomeState extends State<AssistantHome> {
     super.initState();
     _initTts();
     _loadSettings();
+    _native.setMethodCallHandler((call) async {
+      if (call.method == 'wakeWordDetected' && mounted) {
+        await Future.delayed(const Duration(milliseconds: 350));
+        await _listen();
+      }
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -1006,7 +1012,43 @@ class _AssistantHomeState extends State<AssistantHome> {
             label: const Text('Test Gemini Connection'),
           ),
           const SizedBox(height: 8),
-          const Text('Wake word “Jarvis” background listening is not enabled yet.'),
+          const Text('Jarvis wake-word mode (experimental)'),
+          const SizedBox(height: 6),
+          const Text('Start karne par microphone foreground notification ke saath active rahega. Jarvis sunne par “Haan boliye Masum” bolega; phir notification tap karke command dein. STOP notification se band karein.'),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: FilledButton.icon(
+              onPressed: () async {
+                final mic = await Permission.microphone.request();
+                if (!mic.isGranted) {
+                  await _say('Background Jarvis ke liye microphone permission zaroori hai.');
+                  return;
+                }
+                if (await Permission.notification.isDenied) {
+                  await Permission.notification.request();
+                }
+                try {
+                  await _native.invokeMethod('startWakeWord');
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _say('Jarvis wake-word mode start kar diya. Notification mein STOP button available hai.');
+                } on PlatformException catch (e) {
+                  await _say('Wake-word mode start nahi hua: Android error');
+                }
+              },
+              icon: const Icon(Icons.hearing_rounded),
+              label: const Text('START JARVIS'),
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: OutlinedButton.icon(
+              onPressed: () async {
+                await _native.invokeMethod('stopWakeWord');
+                if (ctx.mounted) Navigator.pop(ctx);
+                await _say('Background listening band kar di.');
+              },
+              icon: const Icon(Icons.stop_circle_outlined),
+              label: const Text('STOP'),
+            )),
+          ]),
           const SizedBox(height: 12),
         ]),
       )),
