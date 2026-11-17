@@ -120,8 +120,17 @@ export default {
       return json({ error: "Gemini returned an unreadable response." }, 502);
     }
     if (!upstream.ok) {
-      // Do not expose provider response bodies, API keys, or internal details.
-      return json({ error: "Gemini request failed", providerStatus: upstream.status }, 502);
+      // Return only a short provider diagnostic. Never echo request data,
+      // headers, API keys, or the full upstream payload to the Android client.
+      const detail = String(result.error?.message || result.error?.status || "No provider detail")
+        .replace(/[\\r\\n\\t]+/g, " ")
+        .slice(0, 220);
+      return json({
+        error: "Gemini request failed",
+        providerStatus: upstream.status,
+        providerReason: String(result.error?.status || "UNKNOWN").slice(0, 60),
+        providerMessage: detail,
+      }, 502);
     }
 
     const raw = result.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("").trim() || "";
