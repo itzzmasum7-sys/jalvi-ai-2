@@ -277,10 +277,33 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _say('Aapke phone ki battery $level percent hai.');
       return;
     }
-    // Handle common English and Hindi app names locally before asking the AI server.
-    // This keeps basic app-launch commands working even if speech recognition
-    // slightly changes the spelling or the network is unavailable.
-    if (['youtube', 'you tube', 'यूट्यूब', 'यू ट्यूब'].any(q.contains)) {
+    // Search YouTube for explicit media requests instead of merely opening its home screen.
+    final asksYoutube = ['youtube', 'you tube', 'यूट्यूब', 'यू ट्यूब'].any(q.contains);
+    final asksToPlay = ['play', 'search', 'chalao', 'chala do', 'bajao', 'gaana',
+      'song', 'music', 'movie', 'video', 'चलाओ', 'बजाओ', 'गाना', 'फिल्म', 'मूवी']
+      .any(q.contains);
+    if (asksYoutube && asksToPlay) {
+      var searchTerm = raw
+          .replaceAll(RegExp(r'(?i)youtube|you tube|यूट्यूब|यू ट्यूब'), ' ')
+          .replaceAll(RegExp(r'(?i)please|play|search|on|in|open|chalao|chala do|bajao|gaana|song|music|movie|video'), ' ')
+          .replaceAll(RegExp(r'चलाओ|बजाओ|गाना|फिल्म|मूवी|चलाओ'), ' ')
+          .replaceAll(RegExp(r'(?i)pe|par|mein|me|ko|karo|do'), ' ')
+          .replaceAll(RegExp(r'\\s+'), ' ')
+          .trim();
+      if (searchTerm.isEmpty) {
+        await _say('YouTube par kya search karna hai?');
+      } else {
+        try {
+          await _native.invokeMethod('searchYoutube', {'query': searchTerm});
+          await _say('YouTube par $searchTerm search kar raha hoon. Video aap select kar sakte hain.');
+        } on PlatformException {
+          await _say('YouTube search open nahi ho paya.');
+        }
+      }
+      return;
+    }
+    // Handle common app-opening commands locally.
+    if (asksYoutube) {
       await _openApp('com.google.android.youtube', 'YouTube');
       return;
     }
