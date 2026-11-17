@@ -329,9 +329,41 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _openApp('com.sec.android.app.camera', 'Camera');
       return;
     }
-    if (q.contains('call') || q.contains('phone karo') || q.contains('फोन करो')) {
-      await _say('Main dialer khol raha hoon. Contact select karke call confirm karein.');
-      await _native.invokeMethod('openDialer', {'number': ''});
+    if (q.contains('call') || q.contains('phone karo') || q.contains('फोन करो') ||
+        q.contains('number batao') || q.contains('number do') || q.contains('contact')) {
+      final name = raw
+          .replaceAll(RegExp(r'call|phone|karo|karna|number|batao|bataiye|do|contact|ko|se', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'फोन|करो|नंबर|बताओ|बताइए|कॉन्टैक्ट'), ' ')
+          .trim();
+      if (name.isEmpty) {
+        await _say('Kis contact ka number chahiye? Naam bataiye.');
+        return;
+      }
+      final permission = await Permission.contacts.request();
+      if (!permission.isGranted) {
+        await _say('Contact permission allow karna zaroori hai.');
+        return;
+      }
+      try {
+        final matches = await _native.invokeMethod<List<dynamic>>(
+          'findContact', {'name': name});
+        final contacts = (matches ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        if (contacts.isEmpty) {
+          await _say('$name naam ka contact nahi mila.');
+          return;
+        }
+        if (contacts.length > 1) {
+          final options = contacts.take(3).map((c) => '${c['name']}: ${c['number']}').join('. ');
+          await _say('Kai contacts mile. $options. Exact naam dobara boliye.');
+          return;
+        }
+        final contact = contacts.first;
+        final number = (contact['number'] ?? '').toString();
+        await _say('${contact['name']}. Number $number. Dialer khol raha hoon. Call karne se pehle confirm karein.');
+        await _native.invokeMethod('openDialer', {'number': number});
+      } on PlatformException {
+        await _say('Contact search nahi ho paya. Permission aur phone settings check karein.');
+      }
       return;
     }
     if (q.contains('time') || q.contains('samay')) {
