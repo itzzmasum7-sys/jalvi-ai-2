@@ -505,6 +505,11 @@ class _AssistantHomeState extends State<AssistantHome> {
 
   Future<void> _torch(bool enabled) async {
     try {
+      final cameraPermission = await Permission.camera.request();
+      if (!cameraPermission.isGranted) {
+        await _say('Flashlight control ke liye camera permission allow karein.');
+        return;
+      }
       final changed = await _native.invokeMethod<bool>(
         'setTorch',
         {'enabled': enabled},
