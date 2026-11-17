@@ -118,7 +118,11 @@ class _AssistantHomeState extends State<AssistantHome> {
   Future<void> _say(String text) async {
     _lastReply = text;
     if (!mounted) return;
-    setState(() => _status = 'Speaking');
+    setState(() {
+      _status = 'Speaking';
+      _history.insert(0, 'JALVI: $text');
+      if (_history.length > 30) _history.removeLast();
+    });
     await _tts.stop();
     await _tts.setLanguage(_language);
     await _tts.setPitch(_voice == 'male' ? 0.85 : 1.05);
@@ -687,107 +691,190 @@ class _AssistantHomeState extends State<AssistantHome> {
 
   @override
   Widget build(BuildContext context) {
+    const cyan = Color(0xFF55D9FF);
+    const panel = Color(0xFF101B2C);
     return Scaffold(
+      backgroundColor: const Color(0xFF050914),
       appBar: AppBar(
-        title: const Text('JALVI AI 2.0', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+        backgroundColor: const Color(0xFF080F1D),
+        title: const Row(children: [
+          Icon(Icons.blur_on_rounded, color: cyan, size: 25),
+          SizedBox(width: 9),
+          Text('JALVI AI', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+          SizedBox(width: 7),
+          Text('2.0', style: TextStyle(color: cyan, fontSize: 12, fontWeight: FontWeight.bold)),
+        ]),
         actions: [
-          IconButton(
-            tooltip: 'Settings',
-            onPressed: _showSettings,
-            icon: const Icon(Icons.tune_rounded),
-          )
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: 'Settings',
+              onPressed: _showSettings,
+              icon: const Icon(Icons.tune_rounded),
+            ),
+          ),
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 14),
-            Container(
-              width: 184, height: 184,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(colors: [Color(0xFF164D72), Color(0xFF07111F), Color(0xFF070B14)]),
-                border: Border.all(color: const Color(0xFF35C8FF), width: 1.5),
-                boxShadow: const [BoxShadow(color: Color(0x5535C8FF), blurRadius: 35, spreadRadius: 3)],
+        child: Column(children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            padding: const EdgeInsets.symmetric(vertical: 17, horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF123B59), Color(0xFF0B1B30), Color(0xFF101426)],
               ),
-              child: Icon(_listening ? Icons.graphic_eq : (_speaking ? Icons.volume_up_rounded : Icons.auto_awesome),
-                size: 76, color: const Color(0xFF8CE5FF)),
+              border: Border.all(color: cyan.withValues(alpha: 0.35)),
+              boxShadow: [BoxShadow(color: cyan.withValues(alpha: 0.08), blurRadius: 24)],
             ),
-            const SizedBox(height: 14),
-            const Text('JARVIS', style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, letterSpacing: 5)),
-            Text(_status.toUpperCase(), style: const TextStyle(color: Color(0xFF7EDFFF), letterSpacing: 2, fontSize: 11)),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Row(
-                children: [
-                  Expanded(child: TextField(
-                    controller: _command,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _submitText(),
-                    decoration: InputDecoration(
-                      hintText: 'Jarvis ko command dein...',
-                      filled: true,
-                      fillColor: const Color(0xFF101A2A),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
-                    ),
-                  )),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: _submitText,
-                    icon: const Icon(Icons.send_rounded),
-                  ),
-                ],
+            child: Row(children: [
+              Container(
+                width: 76, height: 76,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const RadialGradient(colors: [Color(0xFF287BA3), Color(0xFF0B1728)]),
+                  border: Border.all(color: cyan, width: 1.4),
+                  boxShadow: [BoxShadow(color: cyan.withValues(alpha: 0.25), blurRadius: 18)],
+                ),
+                child: Icon(
+                  _listening ? Icons.graphic_eq_rounded :
+                    (_speaking ? Icons.volume_up_rounded : Icons.auto_awesome_rounded),
+                  size: 37, color: const Color(0xFFB8F0FF),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              FilledButton.icon(
-                onPressed: _listening ? _stopListening : _listen,
-                icon: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded),
-                label: Text(_listening ? 'Stop Listening' : 'Talk to Jarvis'),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () => _say(_lastReply),
-                icon: const Icon(Icons.replay_rounded),
-                label: const Text('Repeat'),
-              ),
+              const SizedBox(width: 16),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('JARVIS MODE', style: TextStyle(color: Colors.white70, fontSize: 10, letterSpacing: 2.4, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
+                Text(_status.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: cyan, fontSize: 14, letterSpacing: 1.2, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 5),
+                Text(_listening ? 'Aapki awaaz sun raha hoon' : 'Your personal AI assistant',
+                  style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              ])),
+              Icon(Icons.circle, size: 9, color: _listening ? Colors.greenAccent : Colors.white24),
             ]),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Row(children: [
-                _quickAction(Icons.sms_rounded, 'SMS', () => _loadSms()),
-                _quickAction(Icons.battery_charging_full, 'Battery', () async {
-                  final b = await _battery.batteryLevel;
-                  await _say('Battery $b percent hai.');
-                }),
-                _quickAction(Icons.flashlight_on_rounded, 'Torch', () => _torch(true)),
-                _quickAction(Icons.apps_rounded, 'YouTube', () => _openApp('com.google.android.youtube', 'YouTube')),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.smart_toy_outlined, color: cyan, size: 19),
+                const SizedBox(width: 9),
+                Expanded(child: Text(_lastReply, maxLines: 3, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.35))),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Repeat response',
+                  onPressed: () => _say(_lastReply),
+                  icon: const Icon(Icons.volume_up_rounded, color: cyan, size: 19),
+                ),
               ]),
             ),
-            const SizedBox(height: 10),
-            const Divider(color: Color(0xFF1D2B3D)),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(18, 2, 18, 8),
-              child: Align(alignment: Alignment.centerLeft, child: Text('RECENT ACTIVITY', style: TextStyle(fontSize: 11, letterSpacing: 2, color: Colors.white60))),
-            ),
-            Expanded(
-              child: _history.isEmpty
-                  ? const Center(child: Text('Your commands will appear here.', style: TextStyle(color: Colors.white38)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      itemCount: _history.length,
-                      itemBuilder: (_, i) => ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.bolt_rounded, color: Color(0xFF69D9FF)),
-                        title: Text(_history[i], style: const TextStyle(fontSize: 13)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+            child: Row(children: [
+              Expanded(child: TextField(
+                controller: _command,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _submitText(),
+                decoration: InputDecoration(
+                  hintText: 'Ask JALVI anything...',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  filled: true, fillColor: panel,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                ),
+              )),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                style: IconButton.styleFrom(backgroundColor: cyan, foregroundColor: const Color(0xFF04101A)),
+                onPressed: _submitText,
+                icon: const Icon(Icons.arrow_upward_rounded),
+              ),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            child: Row(children: [
+              Expanded(child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF12658A), padding: const EdgeInsets.symmetric(vertical: 12)),
+                onPressed: _listening ? _stopListening : _listen,
+                icon: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded),
+                label: Text(_listening ? 'STOP' : 'TALK TO JALVI'),
+              )),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(foregroundColor: cyan, side: BorderSide(color: cyan.withValues(alpha: 0.45)), padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12)),
+                onPressed: () => _say(_lastReply),
+                icon: const Icon(Icons.replay_rounded, size: 18),
+                label: const Text('REPEAT'),
+              ),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 3, 10, 7),
+            child: Row(children: [
+              _quickAction(Icons.battery_charging_full_rounded, 'Battery', () async {
+                final b = await _battery.batteryLevel;
+                await _say('Battery $b percent hai.');
+              }),
+              _quickAction(Icons.flashlight_on_rounded, 'Torch', () => _torch(true)),
+              _quickAction(Icons.smartphone_rounded, 'Settings', () async {
+                await _native.invokeMethod('openSettings');
+              }),
+              _quickAction(Icons.play_circle_outline_rounded, 'YouTube', () => _openApp('com.google.android.youtube', 'YouTube')),
+            ]),
+          ),
+          const Divider(color: Color(0xFF1D2B3D), height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 9, 16, 5),
+            child: Row(children: [
+              const Text('CONVERSATION', style: TextStyle(fontSize: 10, letterSpacing: 2, color: Colors.white60, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Text('${_history.length} MESSAGES', style: const TextStyle(fontSize: 9, color: Colors.white30, letterSpacing: 1)),
+            ]),
+          ),
+          Expanded(
+            child: _history.isEmpty
+              ? const Center(child: Text('Start speaking or type a command', style: TextStyle(color: Colors.white38, fontSize: 12)))
+              : ListView.builder(
+                  reverse: false,
+                  padding: const EdgeInsets.fromLTRB(14, 3, 14, 12),
+                  itemCount: _history.length,
+                  itemBuilder: (_, i) {
+                    final item = _history[i];
+                    final isUser = item.startsWith('You:');
+                    return Align(
+                      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: isUser ? const Color(0xFF123B59) : panel,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(14), topRight: const Radius.circular(14),
+                            bottomLeft: Radius.circular(isUser ? 14 : 4),
+                            bottomRight: Radius.circular(isUser ? 4 : 14),
+                          ),
+                          border: Border.all(color: isUser ? cyan.withValues(alpha: 0.22) : Colors.white10),
+                        ),
+                        child: Text(item, style: const TextStyle(fontSize: 12, height: 1.35, color: Colors.white)),
                       ),
-                    ),
-            ),
-          ],
-        ),
+                    );
+                  },
+                ),
+          ),
+        ]),
       ),
     );
   }
