@@ -85,21 +85,27 @@ export default {
             }],
           }],
           generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                reply: { type: "STRING" },
-                action: {
-                  type: "STRING",
-                  enum: ["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer", "open_settings"],
+            // Google Search grounding and constrained JSON output are not
+            // consistently accepted together across Gemini model rollouts.
+            // Keep schema-constrained output for chat; request plain text for
+            // grounded research and safely parse/fallback below.
+            ...(input.research === true ? {} : {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "OBJECT",
+                properties: {
+                  reply: { type: "STRING" },
+                  action: {
+                    type: "STRING",
+                    enum: ["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer", "open_settings"],
+                  },
+                  target: { type: "STRING" },
                 },
-                target: { type: "STRING" },
+                required: ["reply", "action", "target"],
               },
-              required: ["reply", "action", "target"],
-            },
+            }),
             temperature: 0.25,
-            maxOutputTokens: 400,
+            maxOutputTokens: 600,
           },
         }),
       });
@@ -118,12 +124,13 @@ export default {
       return json({ error: "Gemini request failed", providerStatus: upstream.status }, 502);
     }
 
-    const raw = result.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+    const raw = result.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("").trim() || "";
+    const allowed = new Set(["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer", "open_settings"]);
+    const apps = new Set(["whatsapp", "youtube", "instagram", "camera"]);
     try {
-      const parsed = JSON.parse(raw);
-      const allowed = new Set(["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer", "open_settings"]);
+      const cleaned = raw.replace(/^\x60{3}(?:json)?\s*/i, "").replace(/\s*\x60{3}$/i, "");
+      const parsed = JSON.parse(cleaned);
       const action = allowed.has(parsed.action) ? parsed.action : "none";
-      const apps = new Set(["whatsapp", "youtube", "instagram", "camera"]);
       const target = action === "open_app" && apps.has(String(parsed.target || "").toLowerCase())
         ? String(parsed.target).toLowerCase()
         : "";
@@ -133,8 +140,11 @@ export default {
         target,
       });
     } catch {
+      // Grounded research may return normal prose instead of JSON. Treat it
+      // as a reply only; never infer or execute a phone action from free text.
+      if (raw) return json({ reply: raw.slice(0, 1000), action: "none", target: "" });
       return json({
-        reply: "Mujhe jawab samajhne mein dikkat hui. Dobara boliye.",
+        reply: "Gemini ne khaali jawab diya. Dobara poochiye.",
         action: "none",
         target: "",
       });
