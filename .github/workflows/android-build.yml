@@ -33,12 +33,14 @@ jobs:
           mkdir -p /tmp/jalvi-custom
           cp android/app/src/main/AndroidManifest.xml /tmp/jalvi-custom/AndroidManifest.xml
           cp android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai/MainActivity.kt /tmp/jalvi-custom/MainActivity.kt
+          cp android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai/NotificationCaptureService.kt /tmp/jalvi-custom/NotificationCaptureService.kt
           flutter create --platforms=android --org com.jalvi.ai --project-name jalvi_ai --overwrite /tmp/jalvi_scaffold
           mkdir -p android
           cp -a /tmp/jalvi_scaffold/android/. android/
           mkdir -p android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai
           cp /tmp/jalvi-custom/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           cp /tmp/jalvi-custom/MainActivity.kt android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai/MainActivity.kt
+          cp /tmp/jalvi-custom/NotificationCaptureService.kt android/app/src/main/kotlin/com/jalvi/ai/jalvi_ai/NotificationCaptureService.kt
 
       - name: Resolve Flutter packages
         run: flutter pub get
