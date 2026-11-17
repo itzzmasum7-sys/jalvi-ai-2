@@ -387,9 +387,9 @@ class _AssistantHomeState extends State<AssistantHome> {
         q.contains('location dikhao') || q.contains('लोकेशन दिखाओ');
     if (asksMaps) {
       final destination = raw
-          .replaceAll(RegExp(r'\\b(?:open|show|find|search|map|maps|direction|directions|route|to|ka|kaise|dikhao|batao|location)\\b', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'\b(?:open|show|find|search|map|maps|direction|directions|route|to|ka|kaise|dikhao|batao|location)\\b', caseSensitive: false), ' ')
           .replaceAll(RegExp(r'मैप|मैप्स|रास्ता|दिशा|दिखाओ|बताओ|लोकेशन'), ' ')
-          .replaceAll(RegExp(r'\\s+'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
       if (destination.isEmpty) {
         await _say('Maps mein kahan jaana hai? Jagah ka naam bataiye.');
