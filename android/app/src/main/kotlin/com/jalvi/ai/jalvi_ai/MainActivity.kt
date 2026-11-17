@@ -44,6 +44,21 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    "openMapsSearch" -> {
+                        val query = call.argument<String>("query")?.trim().orEmpty()
+                        if (query.isBlank()) {
+                            result.error("EMPTY_QUERY", "Maps search query is empty", null)
+                        } else {
+                            val uri = Uri.parse("geo:0,0?q=" + Uri.encode(query))
+                            val intent = Intent(Intent.ACTION_VIEW, uri)
+                            try {
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (e: Exception) {
+                                result.error("MAPS_ERROR", e.message, null)
+                            }
+                        }
+                    }
                     "searchYoutube" -> {
                         val query = call.argument<String>("query")?.trim().orEmpty()
                         if (query.isBlank()) {
