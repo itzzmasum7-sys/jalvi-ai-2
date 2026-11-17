@@ -272,6 +272,32 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _torch(false);
       return;
     }
+    if (q.contains('notification access') || q.contains('notification permission') || q.contains('notification setting')) {
+      try {
+        await _native.invokeMethod('openNotificationAccess');
+        await _say('Notification access settings khol raha hoon. JALVI ko list mein allow karein.');
+      } on PlatformException {
+        await _say('Notification access settings nahi khul payi.');
+      }
+      return;
+    }
+    if (q.contains('notification padho') || q.contains('notifications padho') ||
+        q.contains('read notification') || q.contains('read notifications') ||
+        q.contains('notification dikhao') || q.contains('सूचना पढ़ो') || q.contains('नोटिफिकेशन पढ़ो')) {
+      try {
+        final items = await _native.invokeMethod<List<dynamic>>('getRecentNotifications');
+        final notices = (items ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        if (notices.isEmpty) {
+          await _say('Koi notification available nahi hai. Pehle notification access settings mein JALVI ko allow karein.');
+        } else {
+          final lines = notices.take(5).map((n) => '${n['app']}: ${n['title']}. ${n['text']}').join('. ');
+          await _say(lines);
+        }
+      } on PlatformException {
+        await _say('Notification read nahi ho paya. Notification access settings mein JALVI ko allow karein.');
+      }
+      return;
+    }
     if (q.contains('settings') || q.contains('setting') || q.contains('सेटिंग')) {
       try {
         await _native.invokeMethod('openSettings');
