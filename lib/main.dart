@@ -652,7 +652,7 @@ class _AssistantHomeState extends State<AssistantHome> {
         await _say('Aapke ${_sms.length} recent messages mile hain. Padhne ke liye Padho boliye.');
       }
       if (mounted) setState(() {});
-    } on PlatformException {
+    } on PlatformException catch (e) {
       await _say('SMS read nahi ho paya: ${e.message ?? 'unknown error'}');
     }
   }
@@ -1031,7 +1031,7 @@ class _AssistantHomeState extends State<AssistantHome> {
                   await _native.invokeMethod('startWakeWord');
                   if (ctx.mounted) Navigator.pop(ctx);
                   await _say('Jarvis wake-word mode start kar diya. Notification mein STOP button available hai.');
-                } on PlatformException catch (e) {
+                } on PlatformException {
                   await _say('Wake-word mode start nahi hua: Android error');
                 }
               },
