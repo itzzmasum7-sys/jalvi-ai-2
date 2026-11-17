@@ -21,6 +21,18 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "findContact" -> {
+                        if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                            result.error("PERMISSION", "Contacts permission not granted", null)
+                        } else {
+                            try {
+                                val name = call.argument<String>("name")?.trim().orEmpty()
+                                result.success(findContacts(name))
+                            } catch (e: Exception) {
+                                result.error("CONTACT_ERROR", e.message, null)
+                            }
+                        }
+                    }
                     "getRecentSms" -> {
                         if (checkSelfPermission(android.Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
                             result.error("PERMISSION", "READ_SMS permission not granted", null)
@@ -102,6 +114,28 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun findContacts(query: String): List<Map<String, String>> {
+        if (query.isBlank()) return emptyList()
+        val output = mutableListOf<Map<String, String>>()
+        val uri = android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+        val projection = arrayOf(
+            android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+            android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER
+        )
+        val selection = "${android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?"
+        contentResolver.query(uri, projection, selection, arrayOf("%$query%"), null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val numberIndex = cursor.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER)
+            while (cursor.moveToNext() && output.size < 5) {
+                output.add(mapOf(
+                    "name" to (cursor.getString(nameIndex) ?: ""),
+                    "number" to (cursor.getString(numberIndex) ?: "")
+                ))
+            }
+        }
+        return output
     }
 
     private fun readRecentSms(): List<Map<String, String>> {
