@@ -32,6 +32,30 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    "searchYoutube" -> {
+                        val query = call.argument<String>("query")?.trim().orEmpty()
+                        if (query.isBlank()) {
+                            result.error("EMPTY_QUERY", "YouTube search query is empty", null)
+                        } else {
+                            val url = "https://www.youtube.com/results?search_query=" +
+                                Uri.encode(query)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                setPackage("com.google.android.youtube")
+                            }
+                            try {
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (_: Exception) {
+                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                try {
+                                    startActivity(browserIntent)
+                                    result.success(true)
+                                } catch (e: Exception) {
+                                    result.error("YOUTUBE_ERROR", e.message, null)
+                                }
+                            }
+                        }
+                    }
                     "openApp" -> {
                         val pkg = call.argument<String>("package") ?: ""
                         val launch = packageManager.getLaunchIntentForPackage(pkg)
