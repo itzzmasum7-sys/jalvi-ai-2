@@ -56,6 +56,14 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    "openSettings" -> {
+                        try {
+                            startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("SETTINGS_ERROR", e.message, null)
+                        }
+                    }
                     "openApp" -> {
                         val pkg = call.argument<String>("package") ?: ""
                         val launch = packageManager.getLaunchIntentForPackage(pkg)
