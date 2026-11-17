@@ -9,7 +9,7 @@
 
 This is a buildable **starter project**, not a finished implementation of every item in the master specification. It includes a working Flutter interface, speech input/output hooks, local voice-command routing, and native Android bridges for selected actions. Advanced integrations (reliable always-on wake word, SMS inbox access on every Android version, notification access, WhatsApp private-chat reading, cloud AI, calendar sync, and broad UI automation) require additional permissions, service setup, testing, and in some cases external credentials.
 
-An APK is not included because this build environment does not have Flutter, the Android SDK, or Gradle installed. Build the APK on a computer with Flutter and Android SDK installed by following the steps below.
+GitHub Actions builds a release APK on pushes to `main`. Open the repository's Actions tab, select the latest successful **Build JALVI AI 2.0 APK** run, and download the `jalvi-ai-2-release-apk` artifact.
 
 ## 1. Requirements
 
@@ -56,6 +56,9 @@ The Android manifest declares permissions used by the current starter. Android r
 
 - Dark JALVI dashboard
 - Speech-to-text command input (when Android speech recognition is available)
+- Gemini server request/response support with a Settings connection-test button
+- Local app-launch commands that do not require the AI server
+- Explicit SMS command routing, avoiding accidental inbox reads from ordinary chat
 - Text-to-speech response
 - Manual microphone control
 - Local command routing for:
@@ -72,7 +75,7 @@ The Android manifest declares permissions used by the current starter. Android r
 
 - True offline always-on wake-word engine. A production wake-word engine needs a supported model/SDK and its licensing/activation configuration. The app does not secretly listen in the background.
 - Full contacts lookup, full call history, media-session seek control, gallery semantic search, notification reading, WhatsApp private-message reading, and all system toggles.
-- Online AI backend. Do not put a private API key in the Android app. Add a server-side API endpoint before enabling cloud AI.
+- The app supports a server-side Gemini endpoint configured in Settings. The deployed Worker URL is prefilled; the app access token must match the server's `APP_TOKEN` secret. Keep `GEMINI_API_KEY` and `APP_TOKEN` on the server only; never embed or share the Gemini key in the APK.
 - Production-grade encryption, backup, automated tests, and Play Store compliance review.
 
 ## 6. Privacy
