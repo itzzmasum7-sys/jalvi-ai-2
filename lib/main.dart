@@ -237,7 +237,13 @@ class _AssistantHomeState extends State<AssistantHome> {
       if (_sms.isNotEmpty) await _readSmsAt(_smsIndex);
       return;
     }
-    if (q.contains('sms') || q.contains('message') || q.contains('मैसेज')) {
+    // Only explicit SMS-reading phrases open the inbox. Ordinary conversation
+    // containing the word "message" must go to the AI assistant.
+    if (q == 'sms' || q == 'read sms' || q.contains('sms padho') ||
+        q.contains('sms dikhao') || q.contains('sms read') ||
+        q.contains('message padho') || q.contains('messages padho') ||
+        q.contains('मैसेज पढ़ो') || q.contains('एसएमएस पढ़ो') ||
+        q.contains('inbox padho')) {
       await _loadSms();
       return;
     }
@@ -309,6 +315,55 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _askAi(raw);
     } else {
       await _say('AI brain connect nahi hai. Settings mein AI server URL add karein.');
+    }
+  }
+
+  Future<void> _testAiConnection() async {
+    final endpoint = _endpointController.text.trim();
+    final token = _tokenController.text.trim();
+    if (endpoint.isEmpty) {
+      await _say('Pehle AI server URL enter karein.');
+      return;
+    }
+    try {
+      final uri = Uri.parse(endpoint);
+      if (!uri.hasScheme || !uri.hasAuthority) {
+        await _say('Server URL valid nahi hai.');
+        return;
+      }
+      if (mounted) setState(() => _status = 'Testing AI connection');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token.isNotEmpty) 'X-App-Token': token,
+        },
+        body: jsonEncode({
+          'message': 'Reply exactly: JALVI AI connection successful.',
+          'language': _language,
+          'history': <String>[],
+        }),
+      ).timeout(const Duration(seconds: 35));
+      Map<String, dynamic> data;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is! Map<String, dynamic>) {
+          await _say('Server response JSON object nahi hai.');
+          return;
+        }
+        data = decoded;
+      } catch (_) {
+        await _say('Server ne JSON response nahi diya. HTTP ${response.statusCode}.');
+        return;
+      }
+      if (response.statusCode == 200 && data['reply'] != null) {
+        await _say('Gemini AI connection successful. Server aur AI dono reply kar rahe hain.');
+      } else {
+        final error = (data['error'] ?? 'Unknown server error').toString();
+        await _say('Connection test failed. HTTP ${response.statusCode}: $error');
+      }
+    } on Exception catch (e) {
+      await _say('Connection test nahi hua. Internet, URL aur server check karein. $e');
     }
   }
 
@@ -687,6 +742,12 @@ class _AssistantHomeState extends State<AssistantHome> {
                   : 'AI server URL save ho gaya.');
             },
             child: const Text('Save AI Server URL'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _testAiConnection,
+            icon: const Icon(Icons.wifi_tethering_rounded),
+            label: const Text('Test Gemini Connection'),
           ),
           const SizedBox(height: 8),
           const Text('Wake word “Jarvis” background listening is not enabled yet.'),
