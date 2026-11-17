@@ -559,7 +559,13 @@ class _AssistantHomeState extends State<AssistantHome> {
       }
       if (response.statusCode != 200) {
         final serverError = (data['error'] ?? 'Unknown server error').toString();
-        await _say('AI server error ${response.statusCode}: $serverError');
+        final providerStatus = data['providerStatus']?.toString();
+        final providerMessage = data['providerMessage']?.toString();
+        final details = [
+          if (providerStatus != null) 'Gemini HTTP $providerStatus',
+          if (providerMessage != null && providerMessage.isNotEmpty) providerMessage,
+        ].join('. ');
+        await _say('AI server error ${response.statusCode}: $serverError. ${details.isEmpty ? "Server settings check karein." : details}');
         return;
       }
       final reply = (data['reply'] ?? 'Ji, bataiye.').toString();
