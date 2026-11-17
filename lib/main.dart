@@ -320,10 +320,10 @@ class _AssistantHomeState extends State<AssistantHome> {
     if (asksYoutube && asksToPlay) {
       var searchTerm = raw
           .replaceAll(RegExp(r'youtube|you tube|यूट्यूब|यू ट्यूब', caseSensitive: false), ' ')
-          .replaceAll(RegExp(r'\\b(?:please|play|search|on|in|open|chalao|chala do|bajao|gaana|song|music|movie|video)\\b', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'\b(?:please|play|search|on|in|open|chalao|chala do|bajao|gaana|song|music|movie|video)\b', caseSensitive: false), ' ')
           .replaceAll(RegExp(r'चलाओ|बजाओ|गाना|फिल्म|मूवी|चलाओ'), ' ')
-          .replaceAll(RegExp(r'\\b(?:pe|par|mein|me|ko|karo|do)\\b', caseSensitive: false), ' ')
-          .replaceAll(RegExp(r'\\s+'), ' ')
+          .replaceAll(RegExp(r'\b(?:pe|par|mein|me|ko|karo|do)\b', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
       if (searchTerm.isEmpty) {
         await _say('YouTube par kya search karna hai?');
@@ -358,7 +358,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     if (q.contains('call') || q.contains('phone karo') || q.contains('फोन करो') ||
         q.contains('number batao') || q.contains('number do') || q.contains('contact')) {
       final name = raw
-          .replaceAll(RegExp(r'\\b(call|phone|karo|karna|number|batao|bataiye|do|contact|ko|se|ka|ki|ke)\\b', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'\b(call|phone|karo|karna|number|batao|bataiye|do|contact|ko|se|ka|ki|ke)\b', caseSensitive: false), ' ')
           .replaceAll(RegExp(r'फोन|करो|नंबर|बताओ|बताइए|कॉन्टैक्ट'), ' ')
           .trim();
       if (name.isEmpty) {
