@@ -53,6 +53,8 @@ class _AssistantHomeState extends State<AssistantHome> {
   bool _listening = false;
   bool _speaking = false;
   bool _speechReady = false;
+  String _latestSpeechText = '';
+  bool _voiceResultHandled = false;
   String _status = 'Ready';
   String _lastReply = 'Namaste! Main Jarvis hoon. Aap kya karna chahenge?';
   String _language = 'hi-IN';
@@ -124,72 +126,110 @@ class _AssistantHomeState extends State<AssistantHome> {
   }
 
   Future<void> _listen() async {
-    await _tts.stop();
-    final mic = await Permission.microphone.request();
-    if (!mic.isGranted) {
-      await _say('Microphone permission nahi mili. Settings mein permission allow karein.');
-      return;
-    }
+    if (_listening) return;
     try {
+      await _tts.stop();
+      await _speech.cancel();
+      final mic = await Permission.microphone.request();
+      if (!mic.isGranted) {
+        await _say('Microphone permission nahi mili. App settings mein allow karein.');
+        return;
+      }
       _speechReady = await _speech.initialize(
         debugLogging: true,
-        onStatus: (s) {
+        onStatus: (status) {
           if (!mounted) return;
-          setState(() {
-            _listening = s == 'listening';
-            _status = (s == 'done' || s == 'notListening') ? 'Ready' : s;
-          });
+          if (status == 'done' || status == 'notListening') {
+            final text = _latestSpeechText.trim();
+            setState(() {
+              _listening = false;
+              _status = text.isEmpty ? 'Ready - dobara mic dabayein' : 'Processing';
+            });
+            if (text.isNotEmpty && !_voiceResultHandled) {
+              _voiceResultHandled = true;
+              _handleCommand(text);
+            }
+          } else if (status == 'listening') {
+            setState(() {
+              _listening = true;
+              _status = 'Listening... boliye';
+            });
+          }
         },
-        onError: (e) {
+        onError: (error) {
           if (!mounted) return;
           setState(() {
             _listening = false;
-            _status = 'Voice error: ' + e.errorMsg;
+            _status = 'Voice error: ${error.errorMsg}';
           });
         },
       );
-    } catch (e) {
-      if (mounted) setState(() {
-        _listening = false;
-        _status = 'Voice unavailable';
-      });
-      await _say('Voice recognition start nahi ho paya. Google speech service aur microphone permission check karein.');
-      return;
-    }
-    if (!_speechReady) {
-      await _say('Speech recognition is device par available nahi hai.');
-      return;
-    }
-    final available = await _speech.locales();
-    final ids = available.map((e) => e.localeId).toSet();
-    final speechLocale = ids.contains(_language)
-        ? _language
-        : (ids.contains('hi-IN') ? 'hi-IN' : (ids.contains('en-IN') ? 'en-IN' : null));
-    setState(() {
-      _listening = true;
-      _status = 'Listening';
-    });
-    await _speech.listen(
-      localeId: speechLocale,
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 5),
-      partialResults: true,
-      cancelOnError: false,
-      listenMode: stt.ListenMode.dictation,
-      onResult: (result) {
-        if (!mounted) return;
-        if (result.recognizedWords.isNotEmpty) {
-          _command.text = result.recognizedWords;
+      if (!_speechReady) {
+        await _say('Speech service available nahi hai. Google app mein Speech Recognition update ya enable karein.');
+        return;
+      }
+
+      final locales = await _speech.locales();
+      final ids = locales.map((locale) => locale.localeId.toLowerCase().replaceAll('_', '-')).toList();
+      final preferred = _language.toLowerCase().replaceAll('_', '-');
+      String? speechLocale;
+      if (ids.contains(preferred)) {
+        speechLocale = locales[ids.indexOf(preferred)].localeId;
+      } else {
+        final languagePrefix = preferred.split('-').first;
+        final match = locales.indexWhere((locale) =>
+            locale.localeId.toLowerCase().replaceAll('_', '-').startsWith('$languagePrefix-'));
+        if (match >= 0) {
+          speechLocale = locales[match].localeId;
+        } else {
+          final hindi = ids.indexOf('hi-in');
+          final english = ids.indexOf('en-in');
+          if (hindi >= 0) speechLocale = locales[hindi].localeId;
+          else if (english >= 0) speechLocale = locales[english].localeId;
         }
-        if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-          setState(() {
-            _listening = false;
-            _status = 'Processing';
-          });
-          _handleCommand(result.recognizedWords);
-        }
-      },
-    );
+      }
+
+      _latestSpeechText = '';
+      _voiceResultHandled = false;
+      if (mounted) {
+        setState(() {
+          _listening = true;
+          _status = 'Listening... ab boliye';
+        });
+      }
+      await _speech.listen(
+        localeId: speechLocale,
+        listenFor: const Duration(seconds: 45),
+        pauseFor: const Duration(seconds: 4),
+        partialResults: true,
+        cancelOnError: false,
+        listenMode: stt.ListenMode.dictation,
+        onResult: (result) {
+          if (!mounted) return;
+          final words = result.recognizedWords.trim();
+          if (words.isNotEmpty) {
+            _latestSpeechText = words;
+            _command.text = words;
+          }
+          if (result.finalResult && words.isNotEmpty && !_voiceResultHandled) {
+            _voiceResultHandled = true;
+            setState(() {
+              _listening = false;
+              _status = 'Processing: $words';
+            });
+            _handleCommand(words);
+          }
+        },
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _listening = false;
+          _status = 'Voice start failed: $error';
+        });
+      }
+      await _say('Voice start nahi ho payi. Microphone permission aur Google speech service check karein.');
+    }
   }
 
   Future<void> _stopListening() async {
