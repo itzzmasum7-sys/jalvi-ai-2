@@ -542,7 +542,7 @@ class _AssistantHomeState extends State<AssistantHome> {
           'message': prompt,
           'language': _language,
           'history': _history.take(8).toList().reversed.toList(),
-          'research': RegExp(r'\b(research|latest|news|today|current|search|find|who is|what happened)\b', caseSensitive: false).hasMatch(prompt) || ['research karo', 'internet par dekho', 'web par search', 'aaj ka', 'abhi ka', 'kya latest'].any(prompt.toLowerCase().contains),
+          'research': RegExp(r'\b(research|latest|news|today|current|search|find|who is|what happened|weather|price|rate|score|result|forecast)\b', caseSensitive: false).hasMatch(prompt) || ['research karo', 'internet par dekho', 'web par search', 'aaj ka', 'abhi ka', 'kya latest', 'mausam', 'मौसम', 'taaza khabar', 'ताज़ा खबर', 'kitna rate', 'aaj ka rate'].any(prompt.toLowerCase().contains),
         }),
       ).timeout(const Duration(seconds: 35));
       Map<String, dynamic> data;
