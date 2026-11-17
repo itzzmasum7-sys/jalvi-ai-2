@@ -74,7 +74,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     setState(() {
       _language = prefs.getString('language') ?? 'hi-IN';
       _voice = prefs.getString('voice') ?? 'female';
-      _aiEndpoint = prefs.getString('ai_endpoint') ?? '';
+      _aiEndpoint = prefs.getString('ai_endpoint') ?? 'https://jalvi-ai-brain.itzzmasum7.workers.dev';
       _aiToken = prefs.getString('ai_token') ?? '';
       _tokenController.text = _aiToken;
       _endpointController.text = _aiEndpoint;
