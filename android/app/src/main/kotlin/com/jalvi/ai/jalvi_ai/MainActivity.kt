@@ -68,6 +68,17 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    "openNotificationAccess" -> {
+                        try {
+                            startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("NOTIFICATION_SETTINGS_ERROR", e.message, null)
+                        }
+                    }
+                    "getRecentNotifications" -> {
+                        result.success(NotificationCaptureService.recentNotifications())
+                    }
                     "openSettings" -> {
                         try {
                             startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
