@@ -272,6 +272,15 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _torch(false);
       return;
     }
+    if (q.contains('settings') || q.contains('setting') || q.contains('सेटिंग')) {
+      try {
+        await _native.invokeMethod('openSettings');
+        await _say('Phone settings khol raha hoon.');
+      } on PlatformException {
+        await _say('Phone settings nahi khul payi.');
+      }
+      return;
+    }
     if (q.contains('battery') || q.contains('बैटरी')) {
       final level = await _battery.batteryLevel;
       await _say('Aapke phone ki battery $level percent hai.');
@@ -475,6 +484,10 @@ class _AssistantHomeState extends State<AssistantHome> {
         } else {
           await _openApp(package, target);
         }
+        return;
+      case 'open_settings':
+        await _native.invokeMethod('openSettings');
+        await _say(reply.isEmpty ? 'Phone settings khol raha hoon.' : reply);
         return;
       case 'open_dialer':
         await _say(reply.isEmpty ? 'Dialer khol raha hoon. Call aap khud confirm karein.' : reply);
