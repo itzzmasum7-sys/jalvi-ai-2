@@ -90,7 +90,7 @@ export default {
                 reply: { type: "STRING" },
                 action: {
                   type: "STRING",
-                  enum: ["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer"],
+                  enum: ["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer", "open_settings"],
                 },
                 target: { type: "STRING" },
               },
@@ -119,7 +119,7 @@ export default {
     const raw = result.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
     try {
       const parsed = JSON.parse(raw);
-      const allowed = new Set(["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer"]);
+      const allowed = new Set(["none", "torch_on", "torch_off", "battery", "time", "sms_read", "open_app", "open_dialer", "open_settings"]);
       const action = allowed.has(parsed.action) ? parsed.action : "none";
       const apps = new Set(["whatsapp", "youtube", "instagram", "camera"]);
       const target = action === "open_app" && apps.has(String(parsed.target || "").toLowerCase())
