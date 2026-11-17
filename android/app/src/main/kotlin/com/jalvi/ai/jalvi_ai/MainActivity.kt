@@ -15,11 +15,24 @@ import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private val channelName = "com.jalvi.ai/native"
+    private var nativeChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
-            .setMethodCallHandler { call, result ->
+        nativeChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
+        nativeChannel?.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startWakeWord" -> {
+                        try {
+                            val service = Intent(this, WakeWordService::class.java).apply { action = WakeWordService.ACTION_START }
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) startForegroundService(service) else startService(service)
+                            result.success(true)
+                        } catch (e: Exception) { result.error("WAKE_START", e.message, null) }
+                    }
+                    "stopWakeWord" -> {
+                        stopService(Intent(this, WakeWordService::class.java))
+                        result.success(true)
+                    }
                 when (call.method) {
                     "findContact" -> {
                         if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
@@ -140,6 +153,15 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra(WakeWordService.EXTRA_WAKE_COMMAND, false)) {
+            nativeChannel?.invokeMethod("wakeWordDetected", null)
+            intent.removeExtra(WakeWordService.EXTRA_WAKE_COMMAND)
+        }
     }
 
     private fun findContacts(query: String): List<Map<String, String>> {
