@@ -271,19 +271,23 @@ class _AssistantHomeState extends State<AssistantHome> {
       await _say('Aapke phone ki battery $level percent hai.');
       return;
     }
-    if (q.contains('youtube')) {
+    // Handle common English and Hindi app names locally before asking the AI server.
+    // This keeps basic app-launch commands working even if speech recognition
+    // slightly changes the spelling or the network is unavailable.
+    if (['youtube', 'you tube', 'यूट्यूब', 'यू ट्यूब'].any(q.contains)) {
       await _openApp('com.google.android.youtube', 'YouTube');
       return;
     }
-    if (q.contains('whatsapp')) {
+    if (['whatsapp', 'whatapp', 'whats app', "what's app", 'व्हाट्सएप',
+      'व्हाट्स ऐप', 'वाट्सएप', 'वाट्स ऐप'].any(q.contains)) {
       await _openApp('com.whatsapp', 'WhatsApp');
       return;
     }
-    if (q.contains('instagram')) {
+    if (['instagram', 'insta gram', 'इंस्टाग्राम', 'इंस्टा ग्राम'].any(q.contains)) {
       await _openApp('com.instagram.android', 'Instagram');
       return;
     }
-    if (q.contains('camera')) {
+    if (['camera', 'कैमरा', 'कैमरा खोलो'].any(q.contains)) {
       await _openApp('com.sec.android.app.camera', 'Camera');
       return;
     }
@@ -328,11 +332,23 @@ class _AssistantHomeState extends State<AssistantHome> {
           'history': _history.take(8).toList().reversed.toList(),
         }),
       ).timeout(const Duration(seconds: 35));
-      if (response.statusCode != 200) {
-        await _say('AI server se response nahi mila. Thodi der baad try karein.');
+      Map<String, dynamic> data;
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is! Map<String, dynamic>) {
+          await _say('AI server ka response format sahi nahi hai.');
+          return;
+        }
+        data = decoded;
+      } catch (_) {
+        await _say('AI server ne readable JSON response nahi bheja. Worker code check karein.');
         return;
       }
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200) {
+        final serverError = (data['error'] ?? 'Unknown server error').toString();
+        await _say('AI server error ${response.statusCode}: $serverError');
+        return;
+      }
       final reply = (data['reply'] ?? 'Ji, bataiye.').toString();
       final action = (data['action'] ?? 'none').toString();
       final target = (data['target'] ?? '').toString();
@@ -341,6 +357,8 @@ class _AssistantHomeState extends State<AssistantHome> {
       } else {
         await _say(reply);
       }
+    } on FormatException {
+      await _say('AI server ka jawab samajh nahi aaya. Server response check karein.');
     } catch (e) {
       await _say('AI se connection nahi ho paya. Internet aur AI server URL check karein.');
     }
