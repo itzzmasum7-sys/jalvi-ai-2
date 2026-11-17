@@ -381,6 +381,29 @@ class _AssistantHomeState extends State<AssistantHome> {
       }
       return;
     }
+    // Voice-driven map search opens Google Maps (or another installed map handler).
+    final asksMaps = q.contains('map') || q.contains('maps') ||
+        q.contains('रास्ता') || q.contains('दिशा') ||
+        q.contains('location dikhao') || q.contains('लोकेशन दिखाओ');
+    if (asksMaps) {
+      final destination = raw
+          .replaceAll(RegExp(r'\\b(?:open|show|find|search|map|maps|direction|directions|route|to|ka|kaise|dikhao|batao|location)\\b', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'मैप|मैप्स|रास्ता|दिशा|दिखाओ|बताओ|लोकेशन'), ' ')
+          .replaceAll(RegExp(r'\\s+'), ' ')
+          .trim();
+      if (destination.isEmpty) {
+        await _say('Maps mein kahan jaana hai? Jagah ka naam bataiye.');
+      } else {
+        try {
+          await _native.invokeMethod('openMapsSearch', {'query': destination});
+          await _say('$destination ke liye Maps search khol raha hoon.');
+        } on PlatformException {
+          await _say('Maps search open nahi ho paya.');
+        }
+      }
+      return;
+    }
+
     // Handle common app-opening commands locally.
     if (asksYoutube) {
       await _openApp('com.google.android.youtube', 'YouTube');
