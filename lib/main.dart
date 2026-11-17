@@ -358,7 +358,7 @@ class _AssistantHomeState extends State<AssistantHome> {
     if (q.contains('call') || q.contains('phone karo') || q.contains('फोन करो') ||
         q.contains('number batao') || q.contains('number do') || q.contains('contact')) {
       final name = raw
-          .replaceAll(RegExp(r'call|phone|karo|karna|number|batao|bataiye|do|contact|ko|se', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'\\b(call|phone|karo|karna|number|batao|bataiye|do|contact|ko|se|ka|ki|ke)\\b', caseSensitive: false), ' ')
           .replaceAll(RegExp(r'फोन|करो|नंबर|बताओ|बताइए|कॉन्टैक्ट'), ' ')
           .trim();
       if (name.isEmpty) {
