@@ -284,10 +284,10 @@ class _AssistantHomeState extends State<AssistantHome> {
       .any(q.contains);
     if (asksYoutube && asksToPlay) {
       var searchTerm = raw
-          .replaceAll(RegExp(r'(?i)youtube|you tube|यूट्यूब|यू ट्यूब'), ' ')
-          .replaceAll(RegExp(r'(?i)please|play|search|on|in|open|chalao|chala do|bajao|gaana|song|music|movie|video'), ' ')
+          .replaceAll(RegExp(r'youtube|you tube|यूट्यूब|यू ट्यूब', caseSensitive: false), ' ')
+          .replaceAll(RegExp(r'\\b(?:please|play|search|on|in|open|chalao|chala do|bajao|gaana|song|music|movie|video)\\b', caseSensitive: false), ' ')
           .replaceAll(RegExp(r'चलाओ|बजाओ|गाना|फिल्म|मूवी|चलाओ'), ' ')
-          .replaceAll(RegExp(r'(?i)pe|par|mein|me|ko|karo|do'), ' ')
+          .replaceAll(RegExp(r'\\b(?:pe|par|mein|me|ko|karo|do)\\b', caseSensitive: false), ' ')
           .replaceAll(RegExp(r'\\s+'), ' ')
           .trim();
       if (searchTerm.isEmpty) {
